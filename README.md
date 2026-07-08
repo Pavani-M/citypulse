@@ -151,6 +151,75 @@ pages without listing the endpoints they need.
 - The Discovery map is a proportional mock visualization, not a real map (see
   Status above).
 
+## Deploying CityWish live
+
+Recommended free stack for a demo: **Neon** (Postgres) + **Render** (backend) +
+**Vercel** (frontend). None of these steps can be done from a terminal alone —
+they involve creating accounts and clicking through each provider's dashboard,
+so this is a checklist for you to follow rather than a script.
+
+### 0. Push this repo to GitHub
+
+Git is already initialized locally with everything committed. Create an empty
+repo on GitHub (no README/license — this repo already has files), then:
+
+```bash
+git remote add origin https://github.com/<your-username>/citywish.git
+git branch -M main
+git push -u origin main
+```
+
+### 1. Database — Neon
+
+1. Sign up at [neon.tech](https://neon.tech) (free, no card required).
+2. Create a project → copy the connection string it gives you (starts with
+   `postgresql://...`, includes `?sslmode=require`).
+3. From your machine, run the migrations against it once:
+   ```bash
+   cd backend
+   DATABASE_URL="<paste Neon connection string>" NODE_ENV=production npm run migrate
+   ```
+
+### 2. Backend — Render
+
+1. Sign up at [render.com](https://render.com) and connect your GitHub account.
+2. **New → Web Service** → select the `citywish` repo.
+3. Set **Root Directory** to `backend`.
+4. Build command: `npm install && npm run build`
+5. Start command: `npm start`
+6. Add environment variables (Render → Environment tab):
+   - `DATABASE_URL` = the Neon connection string
+   - `JWT_SECRET` = any long random string
+   - `NODE_ENV` = `production`
+   - `USE_MOCK_PLACES` = `true` (**recommended for a public demo** — keeps a
+     real Google API key, and its billing, out of a link random visitors can
+     hit. Flip to `false` + add real keys only if you're comfortable with
+     that exposure.)
+   - `CORS_ORIGIN` = your Vercel frontend URL (you'll get this in step 3 —
+     come back and set it after)
+7. Deploy. Note the resulting URL, e.g. `https://citywish-backend.onrender.com`.
+   Confirm it works: `curl https://citywish-backend.onrender.com/api/health`
+
+   Free-tier caveat: the service sleeps after 15 minutes of no traffic: the
+   first request after a sleep can take ~30 seconds to wake up.
+
+### 3. Frontend — Vercel
+
+1. Sign up at [vercel.com](https://vercel.com), connect GitHub.
+2. **Add New → Project** → select the `citywish` repo.
+3. Set **Root Directory** to `frontend` (Vercel auto-detects the Vite preset).
+4. Add environment variable:
+   - `VITE_API_URL` = `https://citywish-backend.onrender.com/api` (your real
+     Render URL + `/api`)
+5. Deploy. Note the resulting URL, e.g. `https://citywish.vercel.app`.
+6. Go back to Render and set `CORS_ORIGIN` to that exact Vercel URL, then
+   redeploy the backend so it takes effect.
+
+### 4. Link it from the portfolio
+
+Once both are live, send the Vercel URL over and it'll get wired into the
+CityWish card in the portfolio's "Things I've Built" section.
+
 ## Going live with real Google APIs
 
 1. Create a Google Cloud project, enable **Places API**, **Maps JavaScript
