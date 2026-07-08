@@ -23,6 +23,22 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Guards against a misconfigured API URL (or an SPA rewrite catching /api/*)
+// silently handing back index.html instead of a real API error. Without this,
+// a 200 OK HTML body reaches component state as-is, and the first `.length`
+// or `.map()` on the missing expected field crashes the whole page.
+apiClient.interceptors.response.use((response) => {
+  const contentType = String(response.headers["content-type"] ?? "");
+  if (!contentType.includes("application/json")) {
+    return Promise.reject(
+      new Error(
+        "Unexpected response from the API (not JSON) — check that VITE_API_URL points to a running backend.",
+      ),
+    );
+  }
+  return response;
+});
+
 export interface ApiErrorResponse {
   error: string;
   details?: Array<{ path: string; message: string }>;
