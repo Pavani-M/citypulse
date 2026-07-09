@@ -163,6 +163,14 @@ pages without listing the endpoints they need.
   (`query=restaurant`), not an exact match against Foursquare's own category
   ID taxonomy — mapping every app category to Foursquare's category tree was
   out of scope for this demo.
+- Real geocoding/autocomplete has limited coverage for informal, hyperlocal
+  names (e.g. small residential layouts like "AECS Layout") — Foursquare's
+  free tier needs either strong global name recognition or a geographic bias
+  (this app has no browser geolocation) to surface them. Well-known
+  neighborhoods, landmarks, and cities resolve reliably; obscure local names
+  sometimes don't. The error message when this happens is intentionally
+  honest about the limitation rather than suggesting a workaround that
+  doesn't actually help.
 
 ## Deploying CityPulse live
 

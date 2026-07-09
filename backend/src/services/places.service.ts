@@ -84,14 +84,25 @@ interface FoursquareAutocompleteResult {
   type: string;
   text: { primary: string; secondary?: string };
   geo?: { name: string; center: { latitude: number; longitude: number } };
+  place?: { name: string; latitude: number; longitude: number };
 }
 
-async function foursquareAutocomplete(query: string): Promise<FoursquareAutocompleteResult[]> {
+/** Extracts coordinates regardless of whether Foursquare typed this result as "geo" or "place". */
+function coordinatesOf(r: FoursquareAutocompleteResult): { lat: number; lng: number } | null {
+  if (r.geo) return { lat: r.geo.center.latitude, lng: r.geo.center.longitude };
+  if (r.place) return { lat: r.place.latitude, lng: r.place.longitude };
+  return null;
+}
+
+async function foursquareAutocompleteRaw(
+  query: string,
+  types?: string,
+): Promise<FoursquareAutocompleteResult[]> {
   requireFoursquareKey();
 
   const url = new URL(`${FOURSQUARE_BASE}/autocomplete`);
   url.searchParams.set("query", query);
-  url.searchParams.set("types", "geo");
+  if (types) url.searchParams.set("types", types);
 
   const res = await fetch(url, { headers: foursquareHeaders() });
   if (!res.ok) {
@@ -103,19 +114,36 @@ async function foursquareAutocomplete(query: string): Promise<FoursquareAutocomp
   return data.results ?? [];
 }
 
+/**
+ * Prefers clean "geo" (locality/region) results, but many real neighborhoods
+ * (e.g. "AECS Layout") aren't in Foursquare's geo index at all — only showing
+ * up incidentally in a business name (a "place" result). Falling back to
+ * unrestricted results means those areas still resolve instead of hard-failing.
+ */
+async function foursquareAutocomplete(query: string): Promise<FoursquareAutocompleteResult[]> {
+  const geoResults = await foursquareAutocompleteRaw(query, "geo");
+  if (geoResults.length > 0) return geoResults;
+  return foursquareAutocompleteRaw(query);
+}
+
 async function geocodeReal(query: string): Promise<GeocodeResult> {
   const results = await foursquareAutocomplete(query);
-  const [top] = results.filter((r) => r.geo);
 
-  if (!top?.geo) {
-    throw ApiError.badRequest(`Could not resolve a location for "${query}"`);
+  for (const r of results) {
+    const coords = coordinatesOf(r);
+    if (coords) {
+      return { lat: coords.lat, lng: coords.lng, formattedAddress: r.text.primary };
+    }
   }
 
-  return {
-    lat: top.geo.center.latitude,
-    lng: top.geo.center.longitude,
-    formattedAddress: top.text.primary,
-  };
+  // Foursquare's free autocomplete has limited coverage for informal/hyperlocal
+  // names (e.g. small residential layouts) — even city-qualified text doesn't
+  // always help, since it really needs a geographic bias this app doesn't have
+  // (no browser geolocation). A more prominent nearby landmark/neighborhood
+  // name usually resolves fine.
+  throw ApiError.badRequest(
+    `Could not find "${query}" — try a more well-known nearby landmark or neighborhood name`,
+  );
 }
 
 export async function geocodeLocation(query: string): Promise<GeocodeResult> {
@@ -172,7 +200,7 @@ function autocompletePlacesMock(input: string): AutocompleteSuggestion[] {
 async function autocompletePlacesReal(input: string): Promise<AutocompleteSuggestion[]> {
   const results = await foursquareAutocomplete(input);
   return results
-    .filter((r) => r.geo)
+    .filter((r) => coordinatesOf(r) !== null)
     .map((r) => ({
       description: r.text.primary,
       mainText: r.text.primary,
