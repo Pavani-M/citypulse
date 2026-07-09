@@ -63,7 +63,7 @@ export function MapView({
           <button
             key={place.placeId}
             type="button"
-            title={`${place.name} · ${place.rating.toFixed(1)}★`}
+            title={place.rating !== undefined ? `${place.name} · ${place.rating.toFixed(1)}★` : place.name}
             onClick={() => onSelectPlace?.(place.placeId)}
             style={{ left: `${leftPercent}%`, top: `${topPercent}%` }}
             className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow transition-transform ${

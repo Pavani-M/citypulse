@@ -72,8 +72,10 @@ export interface Place {
   placeId: string;
   name: string;
   category: string;
-  rating: number;
-  userRatingsTotal: number;
+  // Undefined when sourced from a free-tier provider that doesn't expose ratings
+  // (e.g. Foursquare's free tier) — the UI hides the rating row in that case.
+  rating?: number;
+  userRatingsTotal?: number;
   address: string;
   lat: number;
   lng: number;

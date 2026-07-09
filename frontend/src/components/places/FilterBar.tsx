@@ -23,12 +23,15 @@ export const DEFAULT_FILTERS: PlaceFilters = {
 export function FilterBar({
   filters,
   onChange,
+  ratingsAvailable = true,
 }: {
   filters: PlaceFilters;
   onChange: (next: PlaceFilters) => void;
+  /** Hides rating-based filters/sort options when the active provider has no rating data. */
+  ratingsAvailable?: boolean;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+    <div className={`grid grid-cols-2 gap-4 ${ratingsAvailable ? "sm:grid-cols-5" : "sm:grid-cols-3"}`}>
       <div>
         <Label htmlFor="filter-category">Category</Label>
         <Select
@@ -45,37 +48,41 @@ export function FilterBar({
         </Select>
       </div>
 
-      <div>
-        <Label htmlFor="filter-rating">Min rating</Label>
-        <Select
-          id="filter-rating"
-          value={filters.minRating}
-          onChange={(e) => onChange({ ...filters, minRating: Number(e.target.value) })}
-        >
-          <option value={0}>Any rating</option>
-          {[3, 3.5, 4, 4.5].map((r) => (
-            <option key={r} value={r}>
-              {r}+ stars
-            </option>
-          ))}
-        </Select>
-      </div>
+      {ratingsAvailable && (
+        <div>
+          <Label htmlFor="filter-rating">Min rating</Label>
+          <Select
+            id="filter-rating"
+            value={filters.minRating}
+            onChange={(e) => onChange({ ...filters, minRating: Number(e.target.value) })}
+          >
+            <option value={0}>Any rating</option>
+            {[3, 3.5, 4, 4.5].map((r) => (
+              <option key={r} value={r}>
+                {r}+ stars
+              </option>
+            ))}
+          </Select>
+        </div>
+      )}
 
-      <div>
-        <Label htmlFor="filter-reviews">Min reviews</Label>
-        <Select
-          id="filter-reviews"
-          value={filters.minReviews}
-          onChange={(e) => onChange({ ...filters, minReviews: Number(e.target.value) })}
-        >
-          <option value={0}>Any</option>
-          {[50, 100, 500, 1000].map((r) => (
-            <option key={r} value={r}>
-              {r}+ reviews
-            </option>
-          ))}
-        </Select>
-      </div>
+      {ratingsAvailable && (
+        <div>
+          <Label htmlFor="filter-reviews">Min reviews</Label>
+          <Select
+            id="filter-reviews"
+            value={filters.minReviews}
+            onChange={(e) => onChange({ ...filters, minReviews: Number(e.target.value) })}
+          >
+            <option value={0}>Any</option>
+            {[50, 100, 500, 1000].map((r) => (
+              <option key={r} value={r}>
+                {r}+ reviews
+              </option>
+            ))}
+          </Select>
+        </div>
+      )}
 
       <div>
         <Label htmlFor="filter-radius">Distance</Label>
@@ -105,8 +112,8 @@ export function FilterBar({
           onChange={(e) => onChange({ ...filters, sortBy: e.target.value as PlaceFilters["sortBy"] })}
         >
           <option value="distance">Nearest</option>
-          <option value="rating">Highest rating</option>
-          <option value="reviews">Most reviews</option>
+          {ratingsAvailable && <option value="rating">Highest rating</option>}
+          {ratingsAvailable && <option value="reviews">Most reviews</option>}
         </Select>
       </div>
     </div>

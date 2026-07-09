@@ -18,11 +18,32 @@ export interface PlaceSearchParams {
   sortBy?: "rating" | "reviews" | "distance";
 }
 
+const FOURSQUARE_BASE = "https://places-api.foursquare.com";
+const FOURSQUARE_API_VERSION = "2025-06-17";
+
+function foursquareHeaders() {
+  return {
+    Authorization: `Bearer ${env.foursquareApiKey}`,
+    Accept: "application/json",
+    "X-Places-Api-Version": FOURSQUARE_API_VERSION,
+  };
+}
+
+function requireFoursquareKey() {
+  if (!env.foursquareApiKey) {
+    throw ApiError.badRequest(
+      "FOURSQUARE_API_KEY is not set. Set USE_MOCK_PLACES=true or provide a key.",
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
-// Geocoding
+// Geocoding + Autocomplete — Foursquare's free Autocomplete endpoint doubles as
+// both: selecting (or taking the top) suggestion gives real lat/lng directly,
+// with no separate geocoding provider needed.
 // ---------------------------------------------------------------------------
 
-/** A handful of well-known localities so common demo searches resolve to real coordinates. */
+/** A handful of well-known localities so common demo searches resolve to real coordinates in mock mode. */
 const KNOWN_LOCATIONS: Record<string, { lat: number; lng: number; formattedAddress: string }> = {
   "bangalore": { lat: 12.9716, lng: 77.5946, formattedAddress: "Bangalore, Karnataka, India" },
   "bengaluru": { lat: 12.9716, lng: 77.5946, formattedAddress: "Bengaluru, Karnataka, India" },
@@ -45,7 +66,6 @@ function fallbackCoordinatesFor(query: string): { lat: number; lng: number } {
   for (let i = 0; i < query.length; i++) {
     hash = (hash * 31 + query.charCodeAt(i)) % 100000;
   }
-  // Keeps the fallback roughly within India's bounding box for demo plausibility.
   const lat = 12 + (hash % 1000) / 1000;
   const lng = 77 + ((hash * 7) % 1000) / 1000;
   return { lat, lng };
@@ -60,45 +80,47 @@ async function geocodeMock(query: string): Promise<GeocodeResult> {
   return { lat, lng, formattedAddress: query };
 }
 
+interface FoursquareAutocompleteResult {
+  type: string;
+  text: { primary: string; secondary?: string };
+  geo?: { name: string; center: { latitude: number; longitude: number } };
+}
+
+async function foursquareAutocomplete(query: string): Promise<FoursquareAutocompleteResult[]> {
+  requireFoursquareKey();
+
+  const url = new URL(`${FOURSQUARE_BASE}/autocomplete`);
+  url.searchParams.set("query", query);
+  url.searchParams.set("types", "geo");
+
+  const res = await fetch(url, { headers: foursquareHeaders() });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw ApiError.badRequest(`Foursquare autocomplete failed (${res.status}): ${text.slice(0, 300)}`);
+  }
+
+  const data = (await res.json()) as { results?: FoursquareAutocompleteResult[] };
+  return data.results ?? [];
+}
+
 async function geocodeReal(query: string): Promise<GeocodeResult> {
-  if (!env.googleGeocodingApiKey) {
-    throw ApiError.badRequest(
-      "GOOGLE_GEOCODING_API_KEY is not set. Set USE_MOCK_PLACES=true or provide a key.",
-    );
+  const results = await foursquareAutocomplete(query);
+  const [top] = results.filter((r) => r.geo);
+
+  if (!top?.geo) {
+    throw ApiError.badRequest(`Could not resolve a location for "${query}"`);
   }
 
-  const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
-  url.searchParams.set("address", query);
-  url.searchParams.set("key", env.googleGeocodingApiKey);
-
-  const res = await fetch(url);
-  const data = (await res.json()) as {
-    status: string;
-    results: Array<{
-      formatted_address: string;
-      geometry: { location: { lat: number; lng: number } };
-    }>;
-  };
-
-  if (data.status !== "OK" || !data.results.length) {
-    throw ApiError.badRequest(`Could not geocode "${query}" (${data.status})`);
-  }
-
-  const [result] = data.results;
   return {
-    lat: result.geometry.location.lat,
-    lng: result.geometry.location.lng,
-    formattedAddress: result.formatted_address,
+    lat: top.geo.center.latitude,
+    lng: top.geo.center.longitude,
+    formattedAddress: top.text.primary,
   };
 }
 
 export async function geocodeLocation(query: string): Promise<GeocodeResult> {
   return env.useMockPlaces ? geocodeMock(query) : geocodeReal(query);
 }
-
-// ---------------------------------------------------------------------------
-// Autocomplete (as-you-type location suggestions)
-// ---------------------------------------------------------------------------
 
 export interface AutocompleteSuggestion {
   placeId?: string;
@@ -107,7 +129,6 @@ export interface AutocompleteSuggestion {
   secondaryText?: string;
 }
 
-/** A broader pool than KNOWN_LOCATIONS, purely for realistic-feeling mock suggestions. */
 const AUTOCOMPLETE_POOL = [
   "Bangalore, Karnataka, India",
   "Koramangala, Bengaluru, Karnataka, India",
@@ -149,37 +170,13 @@ function autocompletePlacesMock(input: string): AutocompleteSuggestion[] {
 }
 
 async function autocompletePlacesReal(input: string): Promise<AutocompleteSuggestion[]> {
-  if (!env.googlePlacesApiKey) {
-    throw ApiError.badRequest(
-      "GOOGLE_PLACES_API_KEY is not set. Set USE_MOCK_PLACES=true or provide a key.",
-    );
-  }
-
-  const url = new URL("https://maps.googleapis.com/maps/api/place/autocomplete/json");
-  url.searchParams.set("input", input);
-  url.searchParams.set("types", "geocode");
-  url.searchParams.set("key", env.googlePlacesApiKey);
-
-  const res = await fetch(url);
-  const data = (await res.json()) as {
-    status: string;
-    predictions: Array<{
-      place_id: string;
-      description: string;
-      structured_formatting?: { main_text: string; secondary_text?: string };
-    }>;
-  };
-
-  if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-    throw ApiError.badRequest(`Autocomplete failed (${data.status})`);
-  }
-
-  return (data.predictions ?? []).map((p) => ({
-    placeId: p.place_id,
-    description: p.description,
-    mainText: p.structured_formatting?.main_text ?? p.description,
-    secondaryText: p.structured_formatting?.secondary_text,
-  }));
+  const results = await foursquareAutocomplete(input);
+  return results
+    .filter((r) => r.geo)
+    .map((r) => ({
+      description: r.text.primary,
+      mainText: r.text.primary,
+    }));
 }
 
 export async function autocompletePlaces(input: string): Promise<AutocompleteSuggestion[]> {
@@ -187,7 +184,7 @@ export async function autocompletePlaces(input: string): Promise<AutocompleteSug
 }
 
 // ---------------------------------------------------------------------------
-// Nearby place search
+// Nearby place search — Foursquare Places API free tier (mock fallback)
 // ---------------------------------------------------------------------------
 
 const NAME_TEMPLATES: Record<string, string[]> = {
@@ -294,54 +291,60 @@ async function searchNearbyPlacesMock(params: PlaceSearchParams): Promise<Place[
   return places.filter((p) => p.distanceMeters <= params.radiusMeters);
 }
 
+interface FoursquareSearchResult {
+  fsq_place_id?: string;
+  fsq_id?: string;
+  name: string;
+  categories?: Array<{ name: string }>;
+  location?: { formatted_address?: string; address?: string };
+  latitude?: number;
+  longitude?: number;
+  geocodes?: { main?: { latitude: number; longitude: number } };
+  distance?: number;
+}
+
 async function searchNearbyPlacesReal(params: PlaceSearchParams): Promise<Place[]> {
-  if (!env.googlePlacesApiKey) {
-    throw ApiError.badRequest(
-      "GOOGLE_PLACES_API_KEY is not set. Set USE_MOCK_PLACES=true or provide a key.",
-    );
+  requireFoursquareKey();
+
+  const url = new URL(`${FOURSQUARE_BASE}/places/search`);
+  url.searchParams.set("ll", `${params.lat},${params.lng}`);
+  url.searchParams.set("radius", String(Math.min(params.radiusMeters, 100000)));
+  url.searchParams.set("limit", "50");
+  // Foursquare's real category system uses its own numeric ID taxonomy rather than
+  // simple names — using `query` as a loose text filter is an approximation, not an
+  // exact category match, since mapping every category to Foursquare's ID tree is out
+  // of scope for this demo.
+  if (params.category) {
+    url.searchParams.set("query", params.category.replace("_", " "));
   }
 
-  const url = new URL("https://maps.googleapis.com/maps/api/place/nearbysearch/json");
-  url.searchParams.set("location", `${params.lat},${params.lng}`);
-  url.searchParams.set("radius", String(params.radiusMeters));
-  if (params.category) url.searchParams.set("type", params.category);
-  url.searchParams.set("key", env.googlePlacesApiKey);
+  const res = await fetch(url, { headers: foursquareHeaders() });
 
-  const res = await fetch(url);
-  const data = (await res.json()) as {
-    status: string;
-    results: Array<{
-      place_id: string;
-      name: string;
-      types: string[];
-      rating?: number;
-      user_ratings_total?: number;
-      vicinity?: string;
-      geometry: { location: { lat: number; lng: number } };
-      photos?: Array<{ photo_reference: string }>;
-    }>;
-  };
-
-  if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-    throw ApiError.badRequest(`Places search failed (${data.status})`);
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw ApiError.badRequest(`Foursquare search failed (${res.status}): ${text.slice(0, 300)}`);
   }
 
+  const data = (await res.json()) as { results?: FoursquareSearchResult[] };
   const center = { lat: params.lat, lng: params.lng };
 
-  return (data.results ?? []).map((r) => ({
-    placeId: r.place_id,
-    name: r.name,
-    category: params.category ?? r.types[0] ?? "other",
-    rating: r.rating ?? 0,
-    userRatingsTotal: r.user_ratings_total ?? 0,
-    address: r.vicinity ?? "",
-    lat: r.geometry.location.lat,
-    lng: r.geometry.location.lng,
-    distanceMeters: Math.round(haversineDistanceMeters(center, r.geometry.location)),
-    photoUrl: r.photos?.[0]
-      ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference=${r.photos[0].photo_reference}&key=${env.googlePlacesApiKey}`
-      : null,
-  }));
+  return (data.results ?? []).map((r) => {
+    const lat = r.latitude ?? r.geocodes?.main?.latitude ?? center.lat;
+    const lng = r.longitude ?? r.geocodes?.main?.longitude ?? center.lng;
+
+    return {
+      placeId: r.fsq_place_id ?? r.fsq_id ?? `${r.name}-${lat}-${lng}`,
+      name: r.name,
+      category: r.categories?.[0]?.name ?? params.category ?? "place",
+      address: r.location?.formatted_address ?? r.location?.address ?? "",
+      lat,
+      lng,
+      distanceMeters: r.distance ?? Math.round(haversineDistanceMeters(center, { lat, lng })),
+      // Ratings, review counts, and photos are Premium (paid) fields on Foursquare's
+      // free tier — intentionally omitted rather than faked.
+      photoUrl: null,
+    };
+  });
 }
 
 export async function searchNearbyPlaces(params: PlaceSearchParams): Promise<Place[]> {
@@ -349,18 +352,22 @@ export async function searchNearbyPlaces(params: PlaceSearchParams): Promise<Pla
     ? await searchNearbyPlacesMock(params)
     : await searchNearbyPlacesReal(params);
 
+  // Real results have no rating/review data, so a min-rating/min-reviews filter can't
+  // meaningfully apply to them — leave those results in rather than filtering everything out.
   let filtered = results;
   if (params.minRating !== undefined) {
-    filtered = filtered.filter((p) => p.rating >= params.minRating!);
+    filtered = filtered.filter((p) => p.rating === undefined || p.rating >= params.minRating!);
   }
   if (params.minReviews !== undefined) {
-    filtered = filtered.filter((p) => p.userRatingsTotal >= params.minReviews!);
+    filtered = filtered.filter(
+      (p) => p.userRatingsTotal === undefined || p.userRatingsTotal >= params.minReviews!,
+    );
   }
 
   const sortBy = params.sortBy ?? "distance";
   filtered.sort((a, b) => {
-    if (sortBy === "rating") return b.rating - a.rating;
-    if (sortBy === "reviews") return b.userRatingsTotal - a.userRatingsTotal;
+    if (sortBy === "rating") return (b.rating ?? 0) - (a.rating ?? 0);
+    if (sortBy === "reviews") return (b.userRatingsTotal ?? 0) - (a.userRatingsTotal ?? 0);
     return a.distanceMeters - b.distanceMeters;
   });
 

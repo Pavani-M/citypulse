@@ -19,6 +19,6 @@ export const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
 
   useMockPlaces: (process.env.USE_MOCK_PLACES ?? "true").toLowerCase() !== "false",
-  googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY ?? "",
-  googleGeocodingApiKey: process.env.GOOGLE_GEOCODING_API_KEY ?? "",
+  // Foursquare Places API free tier — powers nearby search, geocoding, and autocomplete.
+  foursquareApiKey: process.env.FOURSQUARE_API_KEY ?? "",
 };

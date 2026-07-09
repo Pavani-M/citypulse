@@ -26,5 +26,5 @@ app.use(errorHandler);
 
 app.listen(env.port, () => {
   console.log(`CityPulse API listening on http://localhost:${env.port}`);
-  console.log(`Google Places mode: ${env.useMockPlaces ? "MOCK (no API key needed)" : "LIVE"}`);
+  console.log(`Places mode: ${env.useMockPlaces ? "MOCK (no API key needed)" : "LIVE (Foursquare)"}`);
 });

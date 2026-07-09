@@ -2,7 +2,7 @@
 
 A full-stack MVP: request businesses/restaurants to open in your city, upvote and
 discuss requests, and discover nearby places (restaurants, cafes, attractions,
-parks, malls) via Google Places.
+parks, malls) via the Foursquare Places API.
 
 ```
 CityPulse/
@@ -16,18 +16,24 @@ CityPulse/
   (compiles, boots, and the mock Places endpoint has been smoke-tested).
 - **Frontend**: implemented and verified (builds, dev server boots, and reaches
   the backend through the Vite proxy).
-- **Google Maps / Places / Geocoding**: run in **mock mode by default**
+- **Places search / geocoding / autocomplete**: run in **mock mode by default**
   (`USE_MOCK_PLACES=true`). The mock service returns realistic fake places and
   geocodes a handful of well-known Indian localities, so the app works fully
-  end-to-end with zero Google Cloud setup or cost. See
-  [Going live with real Google APIs](#going-live-with-real-google-apis) to swap
-  in real data.
+  end-to-end with zero external setup or cost. See
+  [Going live with the Foursquare API](#going-live-with-the-foursquare-api) to
+  swap in real data — **verified working live** with real business names,
+  addresses, and categories (e.g. real Koramangala restaurants/cafes).
+- **No ratings/reviews on real data**: Foursquare's free tier doesn't include
+  rating, review count, or photo fields (those are a paid-only tier) — the
+  frontend detects this (`ratingsAvailable` in the search response) and hides
+  the rating display and rating-based filters/sort options accordingly, rather
+  than faking numbers. Mock mode still shows fake ratings for demo purposes.
 - **Map view**: the Discovery page renders a lightweight, dependency-free mock
   map (`frontend/src/components/places/MapView.tsx`) that positions markers
-  proportionally around the searched location. It does **not** call the real
-  Google Maps JavaScript API (that requires a billed API key). Swapping in
-  `@react-google-maps/api` there is a drop-in replacement — the props already
-  match what a real map component needs.
+  proportionally around the searched location. It does **not** call a real
+  Maps JavaScript SDK (that would need a billed Google Maps key). Swapping in
+  a real map library there is a drop-in replacement — the props already match
+  what a real map component needs.
 - **Auth/requests endpoints require a real PostgreSQL database** to actually
   persist data — that part cannot be verified without you provisioning a DB
   (see below). The error handling has been verified to fail cleanly (JSON 500,
@@ -53,7 +59,7 @@ createdb citypulse
 ```
 
 Edit `.env` if your Postgres isn't the default `postgres:postgres@localhost:5432`.
-Leave `USE_MOCK_PLACES=true` to run without any Google Cloud setup.
+Leave `USE_MOCK_PLACES=true` to run without any external API setup.
 
 Run the migrations, then start the API:
 
@@ -118,6 +124,7 @@ POST   /api/requests/:id/updates     (business_rep or admin only)
 POST   /api/requests/:id/comments
 
 GET    /api/places/search       ?location=&category=&minRating=&minReviews=&radiusMeters=&sortBy=
+GET    /api/places/autocomplete ?input=
 
 GET    /api/me/saved-places
 POST   /api/me/saved-places
@@ -150,6 +157,12 @@ pages without listing the endpoints they need.
   in the current schema.
 - The Discovery map is a proportional mock visualization, not a real map (see
   Status above).
+- Real (non-mock) place results have no rating, review count, or photo —
+  Foursquare's free tier doesn't include them (see Status above).
+- Category filtering against real Foursquare data is a loose text match
+  (`query=restaurant`), not an exact match against Foursquare's own category
+  ID taxonomy — mapping every app category to Foursquare's category tree was
+  out of scope for this demo.
 
 ## Deploying CityPulse live
 
@@ -189,10 +202,11 @@ git push -u origin main
    - `DATABASE_URL` = the Neon connection string
    - `JWT_SECRET` = any long random string
    - `NODE_ENV` = `production`
-   - `USE_MOCK_PLACES` = `true` (**recommended for a public demo** — keeps a
-     real Google API key, and its billing, out of a link random visitors can
-     hit. Flip to `false` + add real keys only if you're comfortable with
-     that exposure.)
+   - `USE_MOCK_PLACES` = `true` or `false` — Foursquare's free tier (10,000
+     calls/month) has no billing risk the way a Google key would, so it's
+     reasonable to run this live on a public demo. See below for the key.
+   - `FOURSQUARE_API_KEY` = your Foursquare API key (only needed if
+     `USE_MOCK_PLACES=false`)
    - `CORS_ORIGIN` = your Vercel frontend URL (you'll get this in step 3 —
      come back and set it after)
 7. Deploy. Note the resulting URL, e.g. `https://citypulse-backend.onrender.com`.
@@ -218,22 +232,32 @@ git push -u origin main
 Once both are live, send the Vercel URL over and it'll get wired into the
 CityPulse card in the portfolio's "Things I've Built" section.
 
-## Going live with real Google APIs
+## Going live with the Foursquare API
 
-1. Create a Google Cloud project, enable **Places API**, **Maps JavaScript
-   API**, and **Geocoding API**, and create an API key.
-2. In `backend/.env`, set `USE_MOCK_PLACES=false` and fill in
-   `GOOGLE_PLACES_API_KEY` / `GOOGLE_GEOCODING_API_KEY`. The real
-   implementations already exist in
-   `backend/src/services/googlePlaces.service.ts` (Nearby Search + Geocoding),
-   gated behind that flag — no code changes needed, just the env vars.
-3. Restrict the API key (HTTP referrer for any browser-side use, IP for
-   server-side) in Google Cloud Console before using a real key anywhere
-   public.
+1. Sign up for a free API key at
+   [location.foursquare.com/developer](https://location.foursquare.com/developer/)
+   (10,000 free calls/month, no card required).
+2. In `backend/.env`, set `USE_MOCK_PLACES=false` and `FOURSQUARE_API_KEY=<your key>`.
+   The real implementation already exists in
+   `backend/src/services/places.service.ts` — nearby search, geocoding, and
+   autocomplete all use Foursquare's `places-api.foursquare.com` endpoints
+   (verified working live), gated behind that flag. No code changes needed.
+3. Ratings, review counts, and photos are a **paid-only** tier on Foursquare
+   — they're intentionally omitted from real results rather than faked. The
+   frontend detects this via `ratingsAvailable` in the search response and
+   hides rating UI/filters accordingly.
 4. Replace `frontend/src/components/places/MapView.tsx` with a real map
-   (e.g. `@react-google-maps/api`) if you want live map tiles instead of the
-   mock visualization — the component's props (`center`, `places`,
-   `onSelectPlace`) already match what that library expects.
+   library if you want live map tiles instead of the mock visualization — the
+   component's props (`center`, `places`, `onSelectPlace`) already match what
+   a real map component would need.
+
+**Why not Google Places or OpenStreetMap?** Google Places has real ratings
+but requires a billing account (real, if generous, free credit). OpenStreetMap
+Nominatim is fully free with no key, but its usage policy explicitly forbids
+autocomplete-style query volume, and it returned "Access denied" when tested
+from this environment — Foursquare's free tier turned out to be the best fit:
+a real commercial API designed for this traffic pattern, at the cost of not
+having free rating data.
 
 ## A note on the esbuild/Vite dev-server advisory
 

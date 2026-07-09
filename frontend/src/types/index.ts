@@ -50,8 +50,10 @@ export interface Place {
   placeId: string;
   name: string;
   category: string;
-  rating: number;
-  userRatingsTotal: number;
+  // Undefined when using the real (Foursquare free-tier) provider, which doesn't
+  // include ratings/review counts — only present in mock mode.
+  rating?: number;
+  userRatingsTotal?: number;
   address: string;
   lat: number;
   lng: number;

@@ -13,6 +13,8 @@ export interface SearchPlacesParams {
 export interface SearchPlacesResult {
   center: { lat: number; lng: number; formattedAddress: string };
   places: Place[];
+  /** False when results come from a provider without rating data (see Place type). */
+  ratingsAvailable: boolean;
 }
 
 export async function searchPlaces(params: SearchPlacesParams): Promise<SearchPlacesResult> {

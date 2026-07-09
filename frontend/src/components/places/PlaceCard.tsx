@@ -53,11 +53,15 @@ export function PlaceCard({
         </div>
 
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-600">
-          <span className="flex items-center gap-1 font-medium text-amber-600">
-            <Star className="size-3.5 fill-current" />
-            {place.rating.toFixed(1)}
-          </span>
-          <span className="text-slate-400">({place.userRatingsTotal.toLocaleString()} reviews)</span>
+          {place.rating !== undefined && (
+            <span className="flex items-center gap-1 font-medium text-amber-600">
+              <Star className="size-3.5 fill-current" />
+              {place.rating.toFixed(1)}
+            </span>
+          )}
+          {place.userRatingsTotal !== undefined && (
+            <span className="text-slate-400">({place.userRatingsTotal.toLocaleString()} reviews)</span>
+          )}
           <Badge tone="slate">{place.category.replace("_", " ")}</Badge>
         </div>
 

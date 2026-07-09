@@ -1,11 +1,12 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
+import { env } from "../config/env";
 import { asyncHandler } from "../utils/asyncHandler";
 import {
   autocompletePlaces,
   geocodeLocation,
   searchNearbyPlaces,
-} from "../services/googlePlaces.service";
+} from "../services/places.service";
 
 const RADII_METERS = [1000, 3000, 5000, 10000] as const;
 
@@ -45,6 +46,9 @@ export const searchPlaces = asyncHandler(async (req: Request, res: Response) => 
   res.json({
     center: { lat: center.lat, lng: center.lng, formattedAddress: center.formattedAddress },
     places,
+    // Real (non-mock) results come from Foursquare's free tier, which doesn't include
+    // ratings/review counts — the frontend uses this to hide rating-based filters/UI.
+    ratingsAvailable: env.useMockPlaces,
   });
 });
 

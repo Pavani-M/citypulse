@@ -26,6 +26,7 @@ export function DiscoveryPage() {
     null,
   );
   const [places, setPlaces] = useState<Place[]>([]);
+  const [ratingsAvailable, setRatingsAvailable] = useState(true);
   const [savedPlaceIds, setSavedPlaceIds] = useState<Set<string>>(new Set());
   const [activePlaceId, setActivePlaceId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,6 +48,7 @@ export function DiscoveryPage() {
         });
         setCenter(res.center);
         setPlaces(res.places);
+        setRatingsAvailable(res.ratingsAvailable);
       } catch (err) {
         setError(getApiErrorMessage(err));
       } finally {
@@ -135,7 +137,7 @@ export function DiscoveryPage() {
       </form>
 
       <div className="mt-4">
-        <FilterBar filters={filters} onChange={handleFiltersChange} />
+        <FilterBar filters={filters} onChange={handleFiltersChange} ratingsAvailable={ratingsAvailable} />
       </div>
 
       {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
