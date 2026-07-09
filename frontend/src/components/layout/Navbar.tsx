@@ -38,6 +38,11 @@ export function Navbar() {
           <NavLink to="/requests/new" className={navLinkClass}>
             Request a Business
           </NavLink>
+          {user && (
+            <NavLink to="/collections" className={navLinkClass}>
+              Collections
+            </NavLink>
+          )}
           {(user?.role === "business_rep" || user?.role === "admin") && (
             <NavLink to="/dashboard" className={navLinkClass}>
               Business Dashboard
@@ -97,6 +102,11 @@ export function Navbar() {
             <NavLink to="/requests/new" className={navLinkClass} onClick={() => setMobileOpen(false)}>
               Request a Business
             </NavLink>
+            {user && (
+              <NavLink to="/collections" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                Collections
+              </NavLink>
+            )}
             {(user?.role === "business_rep" || user?.role === "admin") && (
               <NavLink to="/dashboard" className={navLinkClass} onClick={() => setMobileOpen(false)}>
                 Business Dashboard

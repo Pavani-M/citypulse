@@ -7,21 +7,33 @@ import type { Place } from "@/types";
 export function PlaceCard({
   place,
   isSaved,
-  onToggleSave,
+  onSaveClick,
   isActive,
   onHover,
 }: {
   place: Place;
   isSaved?: boolean;
-  onToggleSave?: (place: Place) => void;
+  onSaveClick?: (place: Place) => void;
   isActive?: boolean;
   onHover?: (placeId: string | null) => void;
 }) {
+  const searchQuery = [place.name, place.address].filter(Boolean).join(" ");
+  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
+
   return (
     <Card
       onMouseEnter={() => onHover?.(place.placeId)}
       onMouseLeave={() => onHover?.(null)}
-      className={`flex gap-3 p-4 transition-shadow ${isActive ? "ring-2 ring-brand-400" : ""}`}
+      onClick={() => window.open(searchUrl, "_blank", "noopener,noreferrer")}
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          window.open(searchUrl, "_blank", "noopener,noreferrer");
+        }
+      }}
+      className={`flex cursor-pointer gap-3 p-4 transition-shadow hover:shadow-md ${isActive ? "ring-2 ring-brand-400" : ""}`}
     >
       <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
         {place.photoUrl ? (
@@ -39,13 +51,16 @@ export function PlaceCard({
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <h3 className="truncate font-semibold text-slate-900">{place.name}</h3>
-          {onToggleSave && (
+          {onSaveClick && (
             <button
               type="button"
-              aria-label={isSaved ? "Remove from saved places" : "Save this place"}
+              aria-label={isSaved ? "Saved — manage collections" : "Save to a collection"}
               aria-pressed={isSaved}
-              onClick={() => onToggleSave(place)}
-              className="text-slate-400 hover:text-brand-600"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSaveClick(place);
+              }}
+              className={isSaved ? "text-brand-600" : "text-slate-400 hover:text-brand-600"}
             >
               <Bookmark className="size-5" fill={isSaved ? "currentColor" : "none"} />
             </button>

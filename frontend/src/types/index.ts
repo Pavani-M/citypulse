@@ -61,18 +61,23 @@ export interface Place {
   photoUrl: string | null;
 }
 
-export interface SavedPlace {
-  id: string;
+export interface CollectionPlace {
   placeId: string;
   name: string;
-  address: string | null;
   category: string | null;
-  rating: number | null;
-  userRatingsTotal: number | null;
+  address: string | null;
   lat: number | null;
   lng: number | null;
   photoUrl: string | null;
   savedAt: string;
+}
+
+export interface Collection {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  places: CollectionPlace[];
 }
 
 export const REQUEST_CATEGORIES: RequestCategory[] = [

@@ -1,37 +1,34 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bookmark, Star } from "lucide-react";
+import { FolderHeart } from "lucide-react";
 
-import { listSavedPlaces, listUpvotedRequests, unsavePlace } from "@/api/profile";
+import { listCollections } from "@/api/collections";
+import { listUpvotedRequests } from "@/api/profile";
 import { getApiErrorMessage } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import type { BusinessRequest, SavedPlace } from "@/types";
+import type { BusinessRequest, Collection } from "@/types";
 
 export function ProfilePage() {
   const { user } = useAuth();
-  const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [upvotedRequests, setUpvotedRequests] = useState<BusinessRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([listSavedPlaces(), listUpvotedRequests()])
-      .then(([places, requests]) => {
-        setSavedPlaces(places);
+    Promise.all([listCollections(), listUpvotedRequests()])
+      .then(([cols, requests]) => {
+        setCollections(cols);
         setUpvotedRequests(requests);
       })
       .catch((err) => setError(getApiErrorMessage(err)))
       .finally(() => setIsLoading(false));
   }, []);
 
-  const handleUnsave = async (placeId: string) => {
-    await unsavePlace(placeId);
-    setSavedPlaces((prev) => prev.filter((p) => p.placeId !== placeId));
-  };
+  const totalSavedPlaces = collections.reduce((sum, c) => sum + c.places.length, 0);
 
   if (isLoading) {
     return (
@@ -50,39 +47,31 @@ export function ProfilePage() {
 
       <section className="mt-8">
         <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-          <Bookmark className="size-5" />
-          Saved places ({savedPlaces.length})
+          <FolderHeart className="size-5" />
+          Collections ({collections.length})
         </h2>
-        {savedPlaces.length === 0 ? (
+        {collections.length === 0 ? (
           <p className="mt-2 text-sm text-slate-500">
             Nothing saved yet —{" "}
             <Link to="/discover" className="text-brand-600 hover:underline">
               discover places nearby
             </Link>{" "}
-            and bookmark your favorites.
+            and save your favorites into a collection.
           </p>
         ) : (
-          <div className="mt-3 space-y-2">
-            {savedPlaces.map((place) => (
-              <Card key={place.id} className="flex items-center justify-between gap-4 p-4">
-                <div className="min-w-0">
-                  <p className="font-medium text-slate-900">{place.name}</p>
-                  <p className="flex items-center gap-1 text-sm text-slate-500">
-                    {place.rating !== null && (
-                      <span className="flex items-center gap-1 text-amber-600">
-                        <Star className="size-3.5 fill-current" />
-                        {place.rating.toFixed(1)}
-                      </span>
-                    )}
-                    {place.address && <span className="truncate">· {place.address}</span>}
-                  </p>
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => handleUnsave(place.placeId)}>
-                  Remove
-                </Button>
-              </Card>
-            ))}
-          </div>
+          <Card className="mt-3 flex items-center justify-between gap-4 p-4">
+            <div className="min-w-0">
+              <p className="font-medium text-slate-900">
+                {collections.length} collection{collections.length === 1 ? "" : "s"}
+              </p>
+              <p className="text-sm text-slate-500">
+                {totalSavedPlaces} place{totalSavedPlaces === 1 ? "" : "s"} saved
+              </p>
+            </div>
+            <Link to="/collections" className="text-sm font-medium text-brand-600 hover:underline">
+              View collections
+            </Link>
+          </Card>
         )}
       </section>
 

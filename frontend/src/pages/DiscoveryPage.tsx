@@ -1,8 +1,13 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { searchPlaces, type AutocompleteSuggestion } from "@/api/places";
-import { listSavedPlaces, savePlace, unsavePlace } from "@/api/profile";
+import {
+  addPlaceToCollection,
+  createCollection,
+  listCollections,
+  removePlaceFromCollection,
+} from "@/api/collections";
 import { getApiErrorMessage } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
@@ -11,7 +16,8 @@ import { FilterBar, DEFAULT_FILTERS, type PlaceFilters } from "@/components/plac
 import { PlaceCard } from "@/components/places/PlaceCard";
 import { MapView } from "@/components/places/MapView";
 import { LocationAutocomplete } from "@/components/places/LocationAutocomplete";
-import type { Place } from "@/types";
+import { SaveToCollectionModal } from "@/components/places/SaveToCollectionModal";
+import type { Collection, Place } from "@/types";
 
 export function DiscoveryPage() {
   const { user } = useAuth();
@@ -27,10 +33,16 @@ export function DiscoveryPage() {
   );
   const [places, setPlaces] = useState<Place[]>([]);
   const [ratingsAvailable, setRatingsAvailable] = useState(true);
-  const [savedPlaceIds, setSavedPlaceIds] = useState<Set<string>>(new Set());
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [saveModalPlace, setSaveModalPlace] = useState<Place | null>(null);
   const [activePlaceId, setActivePlaceId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const savedPlaceIds = useMemo(
+    () => new Set(collections.flatMap((c) => c.places.map((p) => p.placeId))),
+    [collections],
+  );
 
   const runSearch = useCallback(
     async (location: string, currentFilters: PlaceFilters) => {
@@ -66,11 +78,11 @@ export function DiscoveryPage() {
 
   useEffect(() => {
     if (!user) {
-      setSavedPlaceIds(new Set());
+      setCollections([]);
       return;
     }
-    listSavedPlaces()
-      .then((saved) => setSavedPlaceIds(new Set(saved.map((s) => s.placeId))))
+    listCollections()
+      .then(setCollections)
       .catch(() => {
         /* Non-critical — save state just won't be pre-populated. */
       });
@@ -93,27 +105,36 @@ export function DiscoveryPage() {
     if (center) runSearch(locationInput, next);
   };
 
-  const handleToggleSave = async (place: Place) => {
+  const handleBookmarkClick = (place: Place) => {
     if (!user) {
       navigate("/login");
       return;
     }
-    const isSaved = savedPlaceIds.has(place.placeId);
-    try {
-      if (isSaved) {
-        await unsavePlace(place.placeId);
-        setSavedPlaceIds((prev) => {
-          const next = new Set(prev);
-          next.delete(place.placeId);
-          return next;
-        });
-      } else {
-        await savePlace(place);
-        setSavedPlaceIds((prev) => new Set(prev).add(place.placeId));
-      }
-    } catch (err) {
-      setError(getApiErrorMessage(err));
+    setSaveModalPlace(place);
+  };
+
+  const handleToggleCollection = async (collection: Collection, isMember: boolean) => {
+    if (isMember) {
+      await removePlaceFromCollection(collection.id, saveModalPlace!.placeId);
+      setCollections((prev) =>
+        prev.map((c) =>
+          c.id === collection.id
+            ? { ...c, places: c.places.filter((p) => p.placeId !== saveModalPlace!.placeId) }
+            : c,
+        ),
+      );
+    } else {
+      const added = await addPlaceToCollection(collection.id, saveModalPlace!);
+      setCollections((prev) =>
+        prev.map((c) => (c.id === collection.id ? { ...c, places: [added, ...c.places] } : c)),
+      );
     }
+  };
+
+  const handleCreateCollection = async (name: string) => {
+    const created = await createCollection(name);
+    setCollections((prev) => [...prev, created]);
+    return created;
   };
 
   return (
@@ -167,7 +188,7 @@ export function DiscoveryPage() {
                   key={place.placeId}
                   place={place}
                   isSaved={savedPlaceIds.has(place.placeId)}
-                  onToggleSave={handleToggleSave}
+                  onSaveClick={handleBookmarkClick}
                   isActive={activePlaceId === place.placeId}
                   onHover={setActivePlaceId}
                 />
@@ -184,6 +205,16 @@ export function DiscoveryPage() {
         <p className="mt-10 text-center text-sm text-slate-500">
           Search an area above to see what's nearby.
         </p>
+      )}
+
+      {saveModalPlace && (
+        <SaveToCollectionModal
+          place={saveModalPlace}
+          collections={collections}
+          onClose={() => setSaveModalPlace(null)}
+          onToggle={handleToggleCollection}
+          onCreate={handleCreateCollection}
+        />
       )}
     </div>
   );

@@ -28,6 +28,10 @@ apiClient.interceptors.request.use((config) => {
 // a 200 OK HTML body reaches component state as-is, and the first `.length`
 // or `.map()` on the missing expected field crashes the whole page.
 apiClient.interceptors.response.use((response) => {
+  // A 204 No Content legitimately has no body/Content-Type at all (e.g. our
+  // DELETE endpoints) — only enforce the JSON check when a body is expected.
+  if (response.status === 204) return response;
+
   const contentType = String(response.headers["content-type"] ?? "");
   if (!contentType.includes("application/json")) {
     return Promise.reject(

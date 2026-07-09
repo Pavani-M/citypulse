@@ -10,6 +10,8 @@ import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { BusinessDashboardPage } from "@/pages/BusinessDashboardPage";
 import { ProfilePage } from "@/pages/ProfilePage";
+import { CollectionsPage } from "@/pages/CollectionsPage";
+import { CollectionDetailPage } from "@/pages/CollectionDetailPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
 export default function App() {
@@ -25,6 +27,8 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/requests/new" element={<CreateRequestPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/collections" element={<CollectionsPage />} />
+          <Route path="/collections/:id" element={<CollectionDetailPage />} />
         </Route>
 
         <Route element={<ProtectedRoute roles={["business_rep", "admin"]} />}>

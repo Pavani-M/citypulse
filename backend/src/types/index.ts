@@ -53,15 +53,21 @@ export interface CommentRow {
   created_at: Date;
 }
 
-export interface SavedPlaceRow {
+export interface CollectionRow {
   id: string;
   user_id: string;
+  name: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CollectionPlaceRow {
+  id: string;
+  collection_id: string;
   place_id: string;
   name: string;
-  address: string | null;
   category: string | null;
-  rating: number | null;
-  user_ratings_total: number | null;
+  address: string | null;
   lat: number | null;
   lng: number | null;
   photo_url: string | null;
