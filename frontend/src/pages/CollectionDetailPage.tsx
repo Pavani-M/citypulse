@@ -1,18 +1,22 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, ImageOff, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarPlus, ImageOff, Trash2 } from "lucide-react";
 
 import { listCollections, removePlaceFromCollection } from "@/api/collections";
+import { createVisit, listVisits } from "@/api/visits";
 import { getApiErrorMessage } from "@/api/client";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
+import { VisitFormModal } from "@/components/visits/VisitFormModal";
 import { formatDate } from "@/lib/utils";
-import type { Collection, CollectionPlace } from "@/types";
+import type { Collection, CollectionPlace, Visit } from "@/types";
 
 export function CollectionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [collection, setCollection] = useState<Collection | null>(null);
+  const [visits, setVisits] = useState<Visit[]>([]);
+  const [visitModalPlace, setVisitModalPlace] = useState<CollectionPlace | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +29,14 @@ export function CollectionDetailPage() {
       })
       .catch((err) => setError(getApiErrorMessage(err)))
       .finally(() => setIsLoading(false));
+    listVisits()
+      .then(setVisits)
+      .catch(() => {
+        /* Non-critical — visited state just won't be pre-populated. */
+      });
   }, [id]);
+
+  const visitedPlaceIds = new Set(visits.map((v) => v.placeId));
 
   const handleRemove = async (place: CollectionPlace) => {
     if (!collection) return;
@@ -105,17 +116,35 @@ export function CollectionDetailPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="truncate font-semibold text-slate-900">{place.name}</h3>
-                    <button
-                      type="button"
-                      aria-label="Remove from this collection"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemove(place);
-                      }}
-                      className="p-1 text-slate-400 hover:text-red-600"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        aria-label={visitedPlaceIds.has(place.placeId) ? "Visited — add another visit" : "Log a visit"}
+                        aria-pressed={visitedPlaceIds.has(place.placeId)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setVisitModalPlace(place);
+                        }}
+                        className={
+                          visitedPlaceIds.has(place.placeId)
+                            ? "p-1 text-brand-600"
+                            : "p-1 text-slate-400 hover:text-brand-600"
+                        }
+                      >
+                        <CalendarPlus className="size-4" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Remove from this collection"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemove(place);
+                        }}
+                        className="p-1 text-slate-400 hover:text-red-600"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-600">
                     {place.category && <Badge tone="slate">{place.category.replace("_", " ")}</Badge>}
@@ -127,6 +156,23 @@ export function CollectionDetailPage() {
             );
           })}
         </div>
+      )}
+
+      {visitModalPlace && (
+        <VisitFormModal
+          place={{
+            placeId: visitModalPlace.placeId,
+            name: visitModalPlace.name,
+            category: visitModalPlace.category,
+            address: visitModalPlace.address,
+            photoUrl: visitModalPlace.photoUrl,
+          }}
+          onClose={() => setVisitModalPlace(null)}
+          onSubmit={async (input) => {
+            const created = await createVisit(input);
+            setVisits((prev) => [created, ...prev]);
+          }}
+        />
       )}
     </div>
   );

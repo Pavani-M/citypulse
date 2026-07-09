@@ -80,6 +80,40 @@ export interface Collection {
   places: CollectionPlace[];
 }
 
+export type VisitPrivacy = "public" | "private" | "friends";
+
+export interface Visit {
+  id: string;
+  placeId: string;
+  placeName: string;
+  placeCategory: string | null;
+  placeAddress: string | null;
+  placePhotoUrl: string | null;
+  visitDate: string;
+  purpose: string | null;
+  servicesUsed: string[];
+  itemsPurchased: string[];
+  amountSpent: number | null;
+  rating: number | null;
+  waitingMinutes: number | null;
+  photos: string[];
+  notes: string | null;
+  wouldVisitAgain: boolean | null;
+  privacy: VisitPrivacy;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VisitStats {
+  totalVisits: number;
+  totalSpent: number;
+  categoriesVisited: number;
+  favoriteCategory: string | null;
+  monthlyActivity: Array<{ month: string; count: number }>;
+}
+
+export const VISIT_PRIVACY_OPTIONS: VisitPrivacy[] = ["private", "friends", "public"];
+
 export const REQUEST_CATEGORIES: RequestCategory[] = [
   "restaurant",
   "cafe",

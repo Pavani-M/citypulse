@@ -74,6 +74,31 @@ export interface CollectionPlaceRow {
   created_at: Date;
 }
 
+export type VisitPrivacy = "public" | "private" | "friends";
+
+export interface VisitRow {
+  id: string;
+  user_id: string;
+  place_id: string;
+  place_name: string;
+  place_category: string | null;
+  place_address: string | null;
+  place_photo_url: string | null;
+  visit_date: string;
+  purpose: string | null;
+  services_used: string[];
+  items_purchased: string[];
+  amount_spent: string | null;
+  rating: number | null;
+  waiting_minutes: number | null;
+  photos: string[];
+  notes: string | null;
+  would_visit_again: boolean | null;
+  privacy: VisitPrivacy;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export interface Place {
   placeId: string;
   name: string;

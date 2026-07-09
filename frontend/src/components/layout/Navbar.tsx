@@ -43,6 +43,11 @@ export function Navbar() {
               Collections
             </NavLink>
           )}
+          {user && (
+            <NavLink to="/timeline" className={navLinkClass}>
+              Timeline
+            </NavLink>
+          )}
           {(user?.role === "business_rep" || user?.role === "admin") && (
             <NavLink to="/dashboard" className={navLinkClass}>
               Business Dashboard
@@ -105,6 +110,11 @@ export function Navbar() {
             {user && (
               <NavLink to="/collections" className={navLinkClass} onClick={() => setMobileOpen(false)}>
                 Collections
+              </NavLink>
+            )}
+            {user && (
+              <NavLink to="/timeline" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                Timeline
               </NavLink>
             )}
             {(user?.role === "business_rep" || user?.role === "admin") && (

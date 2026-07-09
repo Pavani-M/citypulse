@@ -17,7 +17,9 @@ import { PlaceCard } from "@/components/places/PlaceCard";
 import { MapView } from "@/components/places/MapView";
 import { LocationAutocomplete } from "@/components/places/LocationAutocomplete";
 import { SaveToCollectionModal } from "@/components/places/SaveToCollectionModal";
-import type { Collection, Place } from "@/types";
+import { VisitFormModal } from "@/components/visits/VisitFormModal";
+import { createVisit, listVisits } from "@/api/visits";
+import type { Collection, Place, Visit } from "@/types";
 
 export function DiscoveryPage() {
   const { user } = useAuth();
@@ -34,7 +36,9 @@ export function DiscoveryPage() {
   const [places, setPlaces] = useState<Place[]>([]);
   const [ratingsAvailable, setRatingsAvailable] = useState(true);
   const [collections, setCollections] = useState<Collection[]>([]);
+  const [visits, setVisits] = useState<Visit[]>([]);
   const [saveModalPlace, setSaveModalPlace] = useState<Place | null>(null);
+  const [visitModalPlace, setVisitModalPlace] = useState<Place | null>(null);
   const [activePlaceId, setActivePlaceId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +47,7 @@ export function DiscoveryPage() {
     () => new Set(collections.flatMap((c) => c.places.map((p) => p.placeId))),
     [collections],
   );
+  const visitedPlaceIds = useMemo(() => new Set(visits.map((v) => v.placeId)), [visits]);
 
   const runSearch = useCallback(
     async (location: string, currentFilters: PlaceFilters) => {
@@ -79,12 +84,18 @@ export function DiscoveryPage() {
   useEffect(() => {
     if (!user) {
       setCollections([]);
+      setVisits([]);
       return;
     }
     listCollections()
       .then(setCollections)
       .catch(() => {
         /* Non-critical — save state just won't be pre-populated. */
+      });
+    listVisits()
+      .then(setVisits)
+      .catch(() => {
+        /* Non-critical — visited state just won't be pre-populated. */
       });
   }, [user]);
 
@@ -135,6 +146,14 @@ export function DiscoveryPage() {
     const created = await createCollection(name);
     setCollections((prev) => [...prev, created]);
     return created;
+  };
+
+  const handleAddVisitClick = (place: Place) => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    setVisitModalPlace(place);
   };
 
   return (
@@ -189,6 +208,8 @@ export function DiscoveryPage() {
                   place={place}
                   isSaved={savedPlaceIds.has(place.placeId)}
                   onSaveClick={handleBookmarkClick}
+                  hasVisit={visitedPlaceIds.has(place.placeId)}
+                  onAddVisitClick={handleAddVisitClick}
                   isActive={activePlaceId === place.placeId}
                   onHover={setActivePlaceId}
                 />
@@ -214,6 +235,23 @@ export function DiscoveryPage() {
           onClose={() => setSaveModalPlace(null)}
           onToggle={handleToggleCollection}
           onCreate={handleCreateCollection}
+        />
+      )}
+
+      {visitModalPlace && (
+        <VisitFormModal
+          place={{
+            placeId: visitModalPlace.placeId,
+            name: visitModalPlace.name,
+            category: visitModalPlace.category,
+            address: visitModalPlace.address,
+            photoUrl: visitModalPlace.photoUrl,
+          }}
+          onClose={() => setVisitModalPlace(null)}
+          onSubmit={async (input) => {
+            const created = await createVisit(input);
+            setVisits((prev) => [created, ...prev]);
+          }}
         />
       )}
     </div>

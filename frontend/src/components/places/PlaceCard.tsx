@@ -1,4 +1,4 @@
-import { Bookmark, ImageOff, Star } from "lucide-react";
+import { Bookmark, CalendarPlus, ImageOff, Star } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatDistance } from "@/lib/utils";
@@ -8,12 +8,16 @@ export function PlaceCard({
   place,
   isSaved,
   onSaveClick,
+  hasVisit,
+  onAddVisitClick,
   isActive,
   onHover,
 }: {
   place: Place;
   isSaved?: boolean;
   onSaveClick?: (place: Place) => void;
+  hasVisit?: boolean;
+  onAddVisitClick?: (place: Place) => void;
   isActive?: boolean;
   onHover?: (placeId: string | null) => void;
 }) {
@@ -51,20 +55,36 @@ export function PlaceCard({
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <h3 className="truncate font-semibold text-slate-900">{place.name}</h3>
-          {onSaveClick && (
-            <button
-              type="button"
-              aria-label={isSaved ? "Saved — manage collections" : "Save to a collection"}
-              aria-pressed={isSaved}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSaveClick(place);
-              }}
-              className={isSaved ? "text-brand-600" : "text-slate-400 hover:text-brand-600"}
-            >
-              <Bookmark className="size-5" fill={isSaved ? "currentColor" : "none"} />
-            </button>
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {onAddVisitClick && (
+              <button
+                type="button"
+                aria-label={hasVisit ? "Visited — add another visit" : "Log a visit"}
+                aria-pressed={hasVisit}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddVisitClick(place);
+                }}
+                className={hasVisit ? "text-brand-600" : "text-slate-400 hover:text-brand-600"}
+              >
+                <CalendarPlus className="size-5" />
+              </button>
+            )}
+            {onSaveClick && (
+              <button
+                type="button"
+                aria-label={isSaved ? "Saved — manage collections" : "Save to a collection"}
+                aria-pressed={isSaved}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSaveClick(place);
+                }}
+                className={isSaved ? "text-brand-600" : "text-slate-400 hover:text-brand-600"}
+              >
+                <Bookmark className="size-5" fill={isSaved ? "currentColor" : "none"} />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-600">

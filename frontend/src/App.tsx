@@ -12,6 +12,7 @@ import { BusinessDashboardPage } from "@/pages/BusinessDashboardPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { CollectionsPage } from "@/pages/CollectionsPage";
 import { CollectionDetailPage } from "@/pages/CollectionDetailPage";
+import { TimelinePage } from "@/pages/TimelinePage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
 export default function App() {
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/collections" element={<CollectionsPage />} />
           <Route path="/collections/:id" element={<CollectionDetailPage />} />
+          <Route path="/timeline" element={<TimelinePage />} />
         </Route>
 
         <Route element={<ProtectedRoute roles={["business_rep", "admin"]} />}>

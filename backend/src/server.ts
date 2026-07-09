@@ -6,6 +6,7 @@ import { requestsRouter } from "./routes/requests.routes";
 import { placesRouter } from "./routes/places.routes";
 import { profileRouter } from "./routes/profile.routes";
 import { collectionsRouter } from "./routes/collections.routes";
+import { visitsRouter } from "./routes/visits.routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -22,6 +23,7 @@ app.use("/api/requests", requestsRouter);
 app.use("/api/places", placesRouter);
 app.use("/api/me", profileRouter);
 app.use("/api/me/collections", collectionsRouter);
+app.use("/api/me/visits", visitsRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
