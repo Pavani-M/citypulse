@@ -1,14 +1,15 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 import { listRequests, upvoteRequest, removeUpvote } from "@/api/requests";
 import { getApiErrorMessage } from "@/api/client";
+import type { AutocompleteSuggestion } from "@/api/places";
 import { useAuth } from "@/context/AuthContext";
 import { RequestCard } from "@/components/requests/RequestCard";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
+import { LocationAutocomplete } from "@/components/places/LocationAutocomplete";
 import type { BusinessRequest } from "@/types";
 
 export function HomePage() {
@@ -33,6 +34,10 @@ export function HomePage() {
     e.preventDefault();
     if (!locationQuery.trim()) return;
     navigate(`/discover?location=${encodeURIComponent(locationQuery.trim())}`);
+  };
+
+  const handleSuggestionSelect = (suggestion: AutocompleteSuggestion) => {
+    navigate(`/discover?location=${encodeURIComponent(suggestion.description)}`);
   };
 
   const handleUpvote = async (id: string) => {
@@ -67,15 +72,12 @@ export function HomePage() {
         </p>
 
         <form onSubmit={handleSearch} className="mt-6 flex max-w-lg gap-2">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              placeholder="Search an area, e.g. Koramangala"
-              value={locationQuery}
-              onChange={(e) => setLocationQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+          <LocationAutocomplete
+            value={locationQuery}
+            onChange={setLocationQuery}
+            onSelect={handleSuggestionSelect}
+            placeholder="Search an area, e.g. Koramangala"
+          />
           <Button type="submit" variant="secondary">
             Discover
           </Button>

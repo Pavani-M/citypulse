@@ -19,3 +19,18 @@ export async function searchPlaces(params: SearchPlacesParams): Promise<SearchPl
   const res = await apiClient.get<SearchPlacesResult>("/places/search", { params });
   return res.data;
 }
+
+export interface AutocompleteSuggestion {
+  placeId?: string;
+  description: string;
+  mainText: string;
+  secondaryText?: string;
+}
+
+export async function autocompletePlaces(input: string): Promise<AutocompleteSuggestion[]> {
+  if (!input.trim()) return [];
+  const res = await apiClient.get<{ suggestions: AutocompleteSuggestion[] }>("/places/autocomplete", {
+    params: { input },
+  });
+  return res.data.suggestions;
+}

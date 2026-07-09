@@ -1,7 +1,11 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { asyncHandler } from "../utils/asyncHandler";
-import { geocodeLocation, searchNearbyPlaces } from "../services/googlePlaces.service";
+import {
+  autocompletePlaces,
+  geocodeLocation,
+  searchNearbyPlaces,
+} from "../services/googlePlaces.service";
 
 const RADII_METERS = [1000, 3000, 5000, 10000] as const;
 
@@ -18,6 +22,10 @@ const searchQuerySchema = z.object({
     .optional()
     .default(3000),
   sortBy: z.enum(["rating", "reviews", "distance"]).optional().default("distance"),
+});
+
+const autocompleteQuerySchema = z.object({
+  input: z.string().min(1).max(200),
 });
 
 export const searchPlaces = asyncHandler(async (req: Request, res: Response) => {
@@ -38,4 +46,10 @@ export const searchPlaces = asyncHandler(async (req: Request, res: Response) => 
     center: { lat: center.lat, lng: center.lng, formattedAddress: center.formattedAddress },
     places,
   });
+});
+
+export const autocomplete = asyncHandler(async (req: Request, res: Response) => {
+  const query = autocompleteQuerySchema.parse(req.query);
+  const suggestions = await autocompletePlaces(query.input);
+  res.json({ suggestions });
 });

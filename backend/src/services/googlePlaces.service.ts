@@ -97,6 +97,96 @@ export async function geocodeLocation(query: string): Promise<GeocodeResult> {
 }
 
 // ---------------------------------------------------------------------------
+// Autocomplete (as-you-type location suggestions)
+// ---------------------------------------------------------------------------
+
+export interface AutocompleteSuggestion {
+  placeId?: string;
+  description: string;
+  mainText: string;
+  secondaryText?: string;
+}
+
+/** A broader pool than KNOWN_LOCATIONS, purely for realistic-feeling mock suggestions. */
+const AUTOCOMPLETE_POOL = [
+  "Bangalore, Karnataka, India",
+  "Koramangala, Bengaluru, Karnataka, India",
+  "Indiranagar, Bengaluru, Karnataka, India",
+  "HSR Layout, Bengaluru, Karnataka, India",
+  "Whitefield, Bengaluru, Karnataka, India",
+  "Jayanagar, Bengaluru, Karnataka, India",
+  "Electronic City, Bengaluru, Karnataka, India",
+  "MG Road, Bengaluru, Karnataka, India",
+  "Hyderabad, Telangana, India",
+  "Gachibowli, Hyderabad, Telangana, India",
+  "Banjara Hills, Hyderabad, Telangana, India",
+  "Jubilee Hills, Hyderabad, Telangana, India",
+  "Hitech City, Hyderabad, Telangana, India",
+  "Mumbai, Maharashtra, India",
+  "Bandra, Mumbai, Maharashtra, India",
+  "Andheri, Mumbai, Maharashtra, India",
+  "Powai, Mumbai, Maharashtra, India",
+  "Delhi, India",
+  "Connaught Place, New Delhi, Delhi, India",
+  "Saket, New Delhi, Delhi, India",
+  "Pune, Maharashtra, India",
+  "Koregaon Park, Pune, Maharashtra, India",
+  "Chennai, Tamil Nadu, India",
+  "Anna Nagar, Chennai, Tamil Nadu, India",
+  "T Nagar, Chennai, Tamil Nadu, India",
+];
+
+function autocompletePlacesMock(input: string): AutocompleteSuggestion[] {
+  const q = input.trim().toLowerCase();
+  if (!q) return [];
+
+  return AUTOCOMPLETE_POOL.filter((entry) => entry.toLowerCase().includes(q))
+    .slice(0, 8)
+    .map((entry) => {
+      const [mainText, ...rest] = entry.split(", ");
+      return { description: entry, mainText, secondaryText: rest.join(", ") || undefined };
+    });
+}
+
+async function autocompletePlacesReal(input: string): Promise<AutocompleteSuggestion[]> {
+  if (!env.googlePlacesApiKey) {
+    throw ApiError.badRequest(
+      "GOOGLE_PLACES_API_KEY is not set. Set USE_MOCK_PLACES=true or provide a key.",
+    );
+  }
+
+  const url = new URL("https://maps.googleapis.com/maps/api/place/autocomplete/json");
+  url.searchParams.set("input", input);
+  url.searchParams.set("types", "geocode");
+  url.searchParams.set("key", env.googlePlacesApiKey);
+
+  const res = await fetch(url);
+  const data = (await res.json()) as {
+    status: string;
+    predictions: Array<{
+      place_id: string;
+      description: string;
+      structured_formatting?: { main_text: string; secondary_text?: string };
+    }>;
+  };
+
+  if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+    throw ApiError.badRequest(`Autocomplete failed (${data.status})`);
+  }
+
+  return (data.predictions ?? []).map((p) => ({
+    placeId: p.place_id,
+    description: p.description,
+    mainText: p.structured_formatting?.main_text ?? p.description,
+    secondaryText: p.structured_formatting?.secondary_text,
+  }));
+}
+
+export async function autocompletePlaces(input: string): Promise<AutocompleteSuggestion[]> {
+  return env.useMockPlaces ? autocompletePlacesMock(input) : autocompletePlacesReal(input);
+}
+
+// ---------------------------------------------------------------------------
 // Nearby place search
 // ---------------------------------------------------------------------------
 

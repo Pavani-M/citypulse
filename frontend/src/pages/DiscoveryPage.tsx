@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Search } from "lucide-react";
 
-import { searchPlaces } from "@/api/places";
+import { searchPlaces, type AutocompleteSuggestion } from "@/api/places";
 import { listSavedPlaces, savePlace, unsavePlace } from "@/api/profile";
 import { getApiErrorMessage } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { FilterBar, DEFAULT_FILTERS, type PlaceFilters } from "@/components/places/FilterBar";
 import { PlaceCard } from "@/components/places/PlaceCard";
 import { MapView } from "@/components/places/MapView";
+import { LocationAutocomplete } from "@/components/places/LocationAutocomplete";
 import type { Place } from "@/types";
 
 export function DiscoveryPage() {
@@ -81,6 +80,12 @@ export function DiscoveryPage() {
     runSearch(locationInput, filters);
   };
 
+  const handleSuggestionSelect = (suggestion: AutocompleteSuggestion) => {
+    setLocationInput(suggestion.description);
+    setSearchParams({ location: suggestion.description });
+    runSearch(suggestion.description, filters);
+  };
+
   const handleFiltersChange = (next: PlaceFilters) => {
     setFilters(next);
     if (center) runSearch(locationInput, next);
@@ -118,15 +123,12 @@ export function DiscoveryPage() {
       </p>
 
       <form onSubmit={handleSearchSubmit} className="mt-6 flex gap-2">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-          <Input
-            placeholder="Search an area, e.g. Indiranagar"
-            value={locationInput}
-            onChange={(e) => setLocationInput(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <LocationAutocomplete
+          value={locationInput}
+          onChange={setLocationInput}
+          onSelect={handleSuggestionSelect}
+          placeholder="Search an area, e.g. Indiranagar"
+        />
         <Button type="submit" isLoading={isLoading}>
           Search
         </Button>
