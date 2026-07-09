@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ImageOff, Trash2 } from "lucide-react";
 
 import { listCollections, removePlaceFromCollection } from "@/api/collections";
@@ -12,7 +12,6 @@ import type { Collection, CollectionPlace } from "@/types";
 
 export function CollectionDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [collection, setCollection] = useState<Collection | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
