@@ -1,4 +1,4 @@
-import { Bookmark, CalendarPlus, ImageOff, Star } from "lucide-react";
+import { Bookmark, CalendarPlus, ImageOff, MessageSquare, Star } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatDistance } from "@/lib/utils";
@@ -10,6 +10,7 @@ export function PlaceCard({
   onSaveClick,
   hasVisit,
   onAddVisitClick,
+  onTipsClick,
   isActive,
   onHover,
 }: {
@@ -18,6 +19,7 @@ export function PlaceCard({
   onSaveClick?: (place: Place) => void;
   hasVisit?: boolean;
   onAddVisitClick?: (place: Place) => void;
+  onTipsClick?: (place: Place) => void;
   isActive?: boolean;
   onHover?: (placeId: string | null) => void;
 }) {
@@ -56,6 +58,19 @@ export function PlaceCard({
         <div className="flex items-start justify-between gap-2">
           <h3 className="truncate font-semibold text-slate-900">{place.name}</h3>
           <div className="flex shrink-0 items-center gap-1">
+            {onTipsClick && (
+              <button
+                type="button"
+                aria-label="View tips"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTipsClick(place);
+                }}
+                className="text-slate-400 hover:text-brand-600"
+              >
+                <MessageSquare className="size-5" />
+              </button>
+            )}
             {onAddVisitClick && (
               <button
                 type="button"

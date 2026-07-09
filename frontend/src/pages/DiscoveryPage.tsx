@@ -17,6 +17,7 @@ import { PlaceCard } from "@/components/places/PlaceCard";
 import { MapView } from "@/components/places/MapView";
 import { LocationAutocomplete } from "@/components/places/LocationAutocomplete";
 import { SaveToCollectionModal } from "@/components/places/SaveToCollectionModal";
+import { TipsModal } from "@/components/places/TipsModal";
 import { VisitFormModal } from "@/components/visits/VisitFormModal";
 import { createVisit, listVisits } from "@/api/visits";
 import type { Collection, Place, Visit } from "@/types";
@@ -39,6 +40,7 @@ export function DiscoveryPage() {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [saveModalPlace, setSaveModalPlace] = useState<Place | null>(null);
   const [visitModalPlace, setVisitModalPlace] = useState<Place | null>(null);
+  const [tipsModalPlace, setTipsModalPlace] = useState<Place | null>(null);
   const [activePlaceId, setActivePlaceId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -156,6 +158,10 @@ export function DiscoveryPage() {
     setVisitModalPlace(place);
   };
 
+  const handleTipsClick = (place: Place) => {
+    setTipsModalPlace(place);
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <h1 className="text-2xl font-semibold text-slate-900">Discover nearby places</h1>
@@ -210,6 +216,7 @@ export function DiscoveryPage() {
                   onSaveClick={handleBookmarkClick}
                   hasVisit={visitedPlaceIds.has(place.placeId)}
                   onAddVisitClick={handleAddVisitClick}
+                  onTipsClick={handleTipsClick}
                   isActive={activePlaceId === place.placeId}
                   onHover={setActivePlaceId}
                 />
@@ -252,6 +259,13 @@ export function DiscoveryPage() {
             const created = await createVisit(input);
             setVisits((prev) => [created, ...prev]);
           }}
+        />
+      )}
+
+      {tipsModalPlace && (
+        <TipsModal
+          place={{ placeId: tipsModalPlace.placeId, name: tipsModalPlace.name }}
+          onClose={() => setTipsModalPlace(null)}
         />
       )}
     </div>

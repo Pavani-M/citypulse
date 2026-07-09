@@ -114,6 +114,28 @@ export interface VisitStats {
 
 export const VISIT_PRIVACY_OPTIONS: VisitPrivacy[] = ["private", "friends", "public"];
 
+export type TipSort = "helpful" | "newest" | "verified" | "pinned";
+
+export interface Tip {
+  id: string;
+  placeId: string;
+  userId: string;
+  userName: string | null;
+  userRole: UserRole;
+  body: string;
+  upvoteCount: number;
+  downvoteCount: number;
+  reportCount: number;
+  isPinned: boolean;
+  myVote: 1 | -1 | null;
+  isReportedByMe: boolean;
+  isTopContributor: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const TIP_SORT_OPTIONS: TipSort[] = ["helpful", "newest", "verified", "pinned"];
+
 export const REQUEST_CATEGORIES: RequestCategory[] = [
   "restaurant",
   "cafe",

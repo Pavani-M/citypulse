@@ -99,6 +99,19 @@ export interface VisitRow {
   updated_at: Date;
 }
 
+export interface TipRow {
+  id: string;
+  place_id: string;
+  user_id: string;
+  body: string;
+  upvote_count: number;
+  downvote_count: number;
+  report_count: number;
+  is_pinned: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export interface Place {
   placeId: string;
   name: string;
