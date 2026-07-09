@@ -44,9 +44,26 @@ export interface ApiErrorResponse {
   details?: Array<{ path: string; message: string }>;
 }
 
+/**
+ * Extracts a human-readable string from an error, without trusting that the
+ * response body actually matches ApiErrorResponse at runtime. Vercel's own
+ * platform-level errors (e.g. a 404 from an unmatched /api/* path) also use
+ * an `error` key, but shaped as `{ error: { code, message } }` — an object,
+ * not the string our own backend sends. Rendering that object directly as
+ * a child crashes React, so every branch here is checked before use.
+ */
 export function getApiErrorMessage(err: unknown): string {
-  if (axios.isAxiosError<ApiErrorResponse>(err)) {
-    return err.response?.data?.error ?? err.message;
+  if (axios.isAxiosError(err)) {
+    const data: unknown = err.response?.data;
+    if (data && typeof data === "object" && "error" in data) {
+      const errorField = (data as { error: unknown }).error;
+      if (typeof errorField === "string") return errorField;
+      if (errorField && typeof errorField === "object" && "message" in errorField) {
+        const message = (errorField as { message: unknown }).message;
+        if (typeof message === "string") return message;
+      }
+    }
+    return err.message;
   }
   return err instanceof Error ? err.message : "Something went wrong";
 }
