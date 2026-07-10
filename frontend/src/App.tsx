@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { HomePage } from "@/pages/HomePage";
 import { DiscoveryPage } from "@/pages/DiscoveryPage";
+import { ConciergePage } from "@/pages/ConciergePage";
 import { CreateRequestPage } from "@/pages/CreateRequestPage";
 import { RequestDetailsPage } from "@/pages/RequestDetailsPage";
 import { LoginPage } from "@/pages/LoginPage";
@@ -21,6 +22,7 @@ export default function App() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/discover" element={<DiscoveryPage />} />
+        <Route path="/concierge" element={<ConciergePage />} />
         <Route path="/requests/:id" element={<RequestDetailsPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />

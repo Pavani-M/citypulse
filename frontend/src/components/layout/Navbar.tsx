@@ -35,6 +35,9 @@ export function Navbar() {
           <NavLink to="/discover" className={navLinkClass}>
             Discover
           </NavLink>
+          <NavLink to="/concierge" className={navLinkClass}>
+            AI Concierge
+          </NavLink>
           <NavLink to="/requests/new" className={navLinkClass}>
             Request a Business
           </NavLink>
@@ -103,6 +106,9 @@ export function Navbar() {
             </NavLink>
             <NavLink to="/discover" className={navLinkClass} onClick={() => setMobileOpen(false)}>
               Discover
+            </NavLink>
+            <NavLink to="/concierge" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+              AI Concierge
             </NavLink>
             <NavLink to="/requests/new" className={navLinkClass} onClick={() => setMobileOpen(false)}>
               Request a Business

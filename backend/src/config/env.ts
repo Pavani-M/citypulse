@@ -21,4 +21,8 @@ export const env = {
   useMockPlaces: (process.env.USE_MOCK_PLACES ?? "true").toLowerCase() !== "false",
   // Foursquare Places API free tier — powers nearby search, geocoding, and autocomplete.
   foursquareApiKey: process.env.FOURSQUARE_API_KEY ?? "",
+
+  // Google Gemini API (free tier) — powers the AI Local Concierge natural-language search.
+  geminiApiKey: process.env.GEMINI_API_KEY ?? "",
+  geminiModel: process.env.GEMINI_MODEL ?? "gemini-3.1-flash-lite",
 };

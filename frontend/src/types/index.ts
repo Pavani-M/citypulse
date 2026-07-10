@@ -155,3 +155,39 @@ export const REQUEST_STATUSES: RequestStatus[] = [
 export const PLACE_CATEGORIES = ["restaurant", "cafe", "tourist_attraction", "park", "mall"] as const;
 
 export const SEARCH_RADII_METERS = [1000, 3000, 5000, 10000] as const;
+
+export interface ConciergeItineraryStop {
+  time: string;
+  label: string;
+  placeId: string | null;
+  placeName: string;
+  category: string;
+  estimatedCostInr: number;
+  distanceMeters: number | null;
+}
+
+export interface ConciergeItineraryResult {
+  stops: ConciergeItineraryStop[];
+  estimatedTotalCostInr: number;
+  drivingDistanceKm: number | null;
+  parkingAvailable: boolean;
+  notes: string | null;
+}
+
+export interface ConciergeRecommendationItem {
+  placeId: string | null;
+  placeName: string;
+  reason: string;
+  estimatedCostInr: number | null;
+  distanceMeters: number | null;
+  rating: number | null;
+}
+
+export interface ConciergeRecommendationResult {
+  items: ConciergeRecommendationItem[];
+  notes: string | null;
+}
+
+export type ConciergeResponse =
+  | { type: "itinerary"; result: ConciergeItineraryResult; usedPlaceIds: string[] }
+  | { type: "recommendation"; result: ConciergeRecommendationResult; usedPlaceIds: string[] };

@@ -52,6 +52,8 @@ const KNOWN_LOCATIONS: Record<string, { lat: number; lng: number; formattedAddre
   "hyderabad": { lat: 17.385, lng: 78.4867, formattedAddress: "Hyderabad, Telangana, India" },
   "gachibowli": { lat: 17.4401, lng: 78.3489, formattedAddress: "Gachibowli, Hyderabad, Telangana, India" },
   "banjara hills": { lat: 17.4156, lng: 78.4347, formattedAddress: "Banjara Hills, Hyderabad, Telangana, India" },
+  "jubilee hills": { lat: 17.4326, lng: 78.4071, formattedAddress: "Jubilee Hills, Hyderabad, Telangana, India" },
+  "madhapur": { lat: 17.4483, lng: 78.3915, formattedAddress: "Madhapur, Hyderabad, Telangana, India" },
   "mumbai": { lat: 19.076, lng: 72.8777, formattedAddress: "Mumbai, Maharashtra, India" },
   "bandra": { lat: 19.0596, lng: 72.8295, formattedAddress: "Bandra, Mumbai, Maharashtra, India" },
   "delhi": { lat: 28.7041, lng: 77.1025, formattedAddress: "Delhi, India" },
@@ -264,6 +266,18 @@ const NAME_TEMPLATES: Record<string, string[]> = {
 
 const ALL_CATEGORIES = Object.keys(NAME_TEMPLATES);
 
+/** Plausible-sounding mock names for a category with no curated template (e.g. concierge-extracted categories like "dermatologist"). */
+function genericNamesFor(category: string): string[] {
+  const label = category.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return [
+    `${label} Point`,
+    `The ${label} Studio`,
+    `City ${label}`,
+    `${label} Hub`,
+    `Prime ${label}`,
+  ];
+}
+
 const EARTH_RADIUS_METERS = 6371000;
 
 function haversineDistanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
@@ -295,7 +309,7 @@ async function searchNearbyPlacesMock(params: PlaceSearchParams): Promise<Place[
   const places: Place[] = [];
 
   categories.forEach((category) => {
-    const names = NAME_TEMPLATES[category] ?? NAME_TEMPLATES.restaurant;
+    const names = NAME_TEMPLATES[category] ?? genericNamesFor(category);
 
     names.forEach((name, i) => {
       const point = randomPointWithin(center, params.radiusMeters);
